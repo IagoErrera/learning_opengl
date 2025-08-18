@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <exception>
 
 #include "shader.h" 
 #include "texture.h"
@@ -43,7 +44,7 @@ void scrollCalback(GLFWwindow* window, double xoffset, double yoffset) {
 	if (camera != nullptr) camera->scrollHandle(yoffset);
 }
 
-int main() {
+GLFWwindow* initWindow() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -52,20 +53,20 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH,WINDOW_HEIGHT, "Learn OpenGL", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
-		return -1;
+		throw std::runtime_error("Failed to create GLFW window");
 	}
 	glfwMakeContextCurrent(window);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cout << "Failed to initializate GLAD" << std::endl;
-		return -1;
+		std::cout << "Failed to initialize GLAD" << std::endl;
+		throw std::runtime_error("Failed to initialize GLAD");
 	}
 
 	glViewport(0,0,WINDOW_WIDTH, WINDOW_HEIGHT);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	
 	camera = new FlyCamera(
-		glm::vec3(0.0f,0.0f,3.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+		glm::vec3(0.0f,0.0f,10.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f, 1.0f, 0.0f),
 		-90.0f, 0.0f, 45.0f, 10.0f, 0.05f
 	);
 
@@ -76,7 +77,14 @@ int main() {
 
 	glEnable(GL_DEPTH_TEST); // Z-Buffer
 
-	Shader shaders("/home/iago/Documents/Projects/opengl_tutorial/shaders/vertex.vs", "/home/iago/Documents/Projects/opengl_tutorial/shaders/fragment.fs");
+	return window;
+}
+
+int main() {
+	GLFWwindow* window = initWindow();
+
+	Shader normalShaders("/home/iago/Documents/Projects/opengl_tutorial/shaders/vertex.vs", "/home/iago/Documents/Projects/opengl_tutorial/shaders/fragment.fs");
+	Shader lightShaders("/home/iago/Documents/Projects/opengl_tutorial/shaders/vertex.vs", "/home/iago/Documents/Projects/opengl_tutorial/shaders/light.fs");
 
 	float vertices[] = {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -137,6 +145,19 @@ int main() {
 	
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+	
+	// Light VAO
+	unsigned int lightVAO;
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	
+	// Vertex Attributes
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+	
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);	
 
 	// Texture
 	Texture texture(
@@ -144,24 +165,16 @@ int main() {
 			"/home/iago/Documents/Projects/opengl_tutorial/textures/container.jpg",
 			"/home/iago/Documents/Projects/opengl_tutorial/textures/wall.jpg",
 		},
-		{"texture1", "texture2"}, 2, shaders
+		{"texture1", "texture2"}, 2, lightShaders
 	);
 
-	// Cubes Position
-	glm::vec3 cubePositions[] = {
-		glm::vec3( 0.0f,  0.0f,  0.0f), 
-		glm::vec3( 2.0f,  5.0f, -15.0f), 
-		glm::vec3(-1.5f, -2.2f, -2.5f),  
-		glm::vec3(-3.8f, -2.0f, -12.3f),  
-		glm::vec3( 2.4f, -0.4f, -3.5f),  
-		glm::vec3(-1.7f,  3.0f, -7.5f),  
-		glm::vec3( 1.3f, -2.0f, -2.5f),  
-		glm::vec3( 1.5f,  2.0f, -2.5f), 
-		glm::vec3( 1.5f,  0.2f, -1.5f), 
-		glm::vec3(-1.3f,  1.0f, -1.5f)  
-	};
 
-	glm::mat4 view;
+	lightShaders.use();
+	lightShaders.setVec3("objectColor", glm::vec3(1.0, 0.5f, 0.31f));
+	lightShaders.setVec3("lightColor", glm::vec3(1.0, 1.0f, 1.0f));
+
+	glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+	glm::vec3 cubePos(0.0f, 0.0f, 0.0f);
 
 	while(!glfwWindowShouldClose(window)) {
 		processInput(window);
@@ -170,26 +183,38 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		texture.activate();
-		shaders.use();			
-	
-		camera->update(shaders, WINDOW_WIDTH/WINDOW_HEIGHT, "view", "projection");	
+
+		camera->update(lightShaders, WINDOW_WIDTH/WINDOW_HEIGHT, "view", "projection");		
+
+		Transform lightTransform(&lightShaders, "model");
+		lightTransform.translate(lightPos);
+		float lightAngle = (float)glfwGetTime() * glm::radians(20.0f);
+		lightTransform.rotate(lightAngle * glm::vec3(1.0f, 0.5f, 0.5f));
+		lightTransform.update();
+		lightShaders.use();	
+		
+		lightShaders.use();			
+		glBindVertexArray(lightVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+			
+		camera->update(normalShaders, WINDOW_WIDTH/WINDOW_HEIGHT, "view", "projection");		
+		
+		Transform normalTransform(&normalShaders, "model");
+		normalTransform.translate(cubePos);
+		float normalAngle = (float)glfwGetTime() * glm::radians(10.0f);
+		normalTransform.rotate(normalAngle * glm::vec3(1.0f, 0.5f, 0.5f));
+		normalTransform.update();
+		normalShaders.use();			
 		
 		glBindVertexArray(VAO);
-		for (unsigned int i = 0; i < 10; i++) {
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));	
-			shaders.setMat4("model", model);
-				
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
 	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
 
 	glfwTerminate();

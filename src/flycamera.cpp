@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <exception>
 
 #include "shader.h" 
 #include "texture.h"
@@ -43,7 +44,7 @@ void scrollCalback(GLFWwindow* window, double xoffset, double yoffset) {
 	if (camera != nullptr) camera->scrollHandle(yoffset);
 }
 
-int main() {
+GLFWwindow* initWindow() {
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -52,13 +53,13 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH,WINDOW_HEIGHT, "Learn OpenGL", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
-		return -1;
+		throw std::runtime_error("Failed to create GLFW window");
 	}
 	glfwMakeContextCurrent(window);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cout << "Failed to initializate GLAD" << std::endl;
-		return -1;
+		std::cout << "Failed to initialize GLAD" << std::endl;
+		throw std::runtime_error("Failed to initialize GLAD");
 	}
 
 	glViewport(0,0,WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -66,7 +67,7 @@ int main() {
 	
 	camera = new FlyCamera(
 		glm::vec3(0.0f,0.0f,3.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-		0.0f, 0.0f, 45.0f, 10.0f, 0.05f
+		-90.0f, 0.0f, 45.0f, 10.0f, 0.05f
 	);
 
 	// Capture Mouse
@@ -76,9 +77,14 @@ int main() {
 
 	glEnable(GL_DEPTH_TEST); // Z-Buffer
 
+	return window;
+}
+
+int main() {
+	GLFWwindow* window = initWindow();
+
 	Shader shaders("/home/iago/Documents/Projects/opengl_tutorial/shaders/vertex.vs", "/home/iago/Documents/Projects/opengl_tutorial/shaders/fragment.fs");
 
-	// Rectangle to render (2 triangles)
 	float vertices[] = {
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -162,8 +168,6 @@ int main() {
 		glm::vec3(-1.3f,  1.0f, -1.5f)  
 	};
 
-	glm::mat4 view;
-
 	while(!glfwWindowShouldClose(window)) {
 		processInput(window);
 
@@ -172,20 +176,18 @@ int main() {
 		
 		texture.activate();
 		shaders.use();			
-		
-		view = camera->getViewMatrix();
-		glm::mat4 projection = glm::perspective(glm::radians(camera->getFov()), WINDOW_WIDTH/WINDOW_HEIGHT, 0.1f, 100.0f);	
-		shaders.setMat4("view", view);
-		shaders.setMat4("projection", projection);
+	
+		camera->update(shaders, WINDOW_WIDTH/WINDOW_HEIGHT, "view", "projection");	
 		
 		glBindVertexArray(VAO);
 		for (unsigned int i = 0; i < 10; i++) {
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));	
-			shaders.setMat4("model", model);
-				
+			
+			Transform transform(&shaders, "model");
+			transform.translate(cubePositions[i]);
+			float angle = (float)glfwGetTime() * glm::radians(20.0f * i);
+			transform.rotate(angle, 0.5f * angle, angle * 0.5);
+			transform.update();
+
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 

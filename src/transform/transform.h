@@ -13,8 +13,6 @@ private:
 	Shader* shader;
 	std::string shader_property;
 	
-	glm::mat4 transform;
-	
 	float rotate_x;
 	float rotate_y;
 	float rotate_z;
@@ -35,10 +33,19 @@ public:
 	~Transform();
 	
 	void reset();
+	void update() const;
+	
 	void rotate(float x, float y, float z);
+	void rotate(glm::vec3 rotation);
+	void setRotate(glm::vec3 rotation);
+	
 	void translate(float x, float y, float z);
+	void translate(glm::vec3 translation);
+	void setTranslate(glm::vec3 translation);
+	
 	void scale(float x, float y, float z);
-	void apply() const;
+	void scale(glm::vec3 scalling);
+	void setScale(glm::vec3 scalling);
 
 	glm::mat4 getTransform() const;
 	glm::vec3 getRotate() const;
