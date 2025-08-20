@@ -16,12 +16,15 @@ class Texture {
 private:
 	unsigned int nTextures;
 	unsigned int* textures;
-public:
 
+	void loadTexture(const std::string& path, const std::string& name, unsigned int n, unsigned int& texture, Shader& shader);
+public:
 	Texture(const std::vector<std::string>& paths, const std::vector<std::string>& shaderTexNames, unsigned int nTextures, Shader shader);
+	Texture(const char* paths, const char* shaderTexName, Shader shader);
 	~Texture();
 	
 	void activate();
+	unsigned int* getTexturesID();
 };
 
 #endif
