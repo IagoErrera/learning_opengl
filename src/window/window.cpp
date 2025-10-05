@@ -34,6 +34,9 @@ GLFWwindow* initWindow(
 	glfwSetScrollCallback(window, scrollCalback);
 
 	glEnable(GL_DEPTH_TEST); // Z-Buffer
+	
+	glEnable(GL_BLEND); // Blend
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	return window;
 }

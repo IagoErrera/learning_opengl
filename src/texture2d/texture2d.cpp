@@ -73,7 +73,7 @@ void Texture2D::loadTexture(
 		throw std::runtime_error("Fail on load texture: " + path); 
 	}
 	
-	GLenum format;
+	GLenum format = GL_RGBA;
 	if (channels == 1)
 		format = GL_RED;
 	else if (channels == 3)

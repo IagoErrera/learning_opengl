@@ -45,6 +45,7 @@ void Camera::rotate(ROTATE_TYPE type, float value) {
 			else if (pitch < -89) pitch = -89.0f;
 			break;
 	}
+
 	updateCameraVectors();
 }
 

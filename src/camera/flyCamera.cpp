@@ -26,6 +26,9 @@ void FlyCamera::mouseHandle(double xpos, double ypos) {
 	float xoffset = (xpos - lastMouseX) * sensitivity;
 	float yoffset = (ypos - lastMouseY) * sensitivity;
 	lastMouseX = xpos; lastMouseY = ypos;
+		
+	if (xoffset > 1000 || xoffset < -1000) xoffset = 0;
+	if (yoffset > 1000 || xoffset < -1000) yoffset = 0;
 
 	rotate(ROTATE_TYPE::YAW,   xoffset);
 	rotate(ROTATE_TYPE::PITCH, -yoffset);
