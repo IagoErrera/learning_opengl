@@ -41,8 +41,8 @@ void Camera::rotate(ROTATE_TYPE type, float value) {
 			break;
 		case ROTATE_TYPE::PITCH:
 			pitch += value;
-			if (pitch > 90.0f) pitch = 90.0f;
-			else if (pitch < -90) pitch = -90.0f;
+			if (pitch > 89.0f) pitch = 89.0f;
+			else if (pitch < -89) pitch = -89.0f;
 			break;
 	}
 	updateCameraVectors();
@@ -66,10 +66,12 @@ void Camera::setUp(glm::vec3 up) {
 
 void Camera::setYaw(float value) {
 	yaw = value;
+	updateCameraVectors();
 }
 
 void Camera::setPitch(float value) {
 	pitch = value;
+	updateCameraVectors();
 }
 
 void Camera::setFov(float value) {

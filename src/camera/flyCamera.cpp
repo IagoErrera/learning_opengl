@@ -8,6 +8,9 @@ FlyCamera::FlyCamera(
 	speed{speed}, sensitivity{sensitivity}
 {}
 
+FlyCamera::FlyCamera(float speed, float sensitivity) : 
+	Camera(), speed{speed}, sensitivity{sensitivity} {}; 
+
 FlyCamera::~FlyCamera() {}
 
 void FlyCamera::movementHandle(GLFWwindow* window, float deltaTime) {

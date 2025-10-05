@@ -19,6 +19,7 @@ public:
 		float yaw, float pitch, float fov,
 		float speed, float sensitivity
 	);
+	FlyCamera(float speed = 2.5f, float sensitivity = 0.1f);
     ~FlyCamera();	
 	
 	void movementHandle(GLFWwindow* window, float deltaTime);
